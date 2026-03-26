@@ -49,11 +49,13 @@ export const actualizarCantidad = (id, talla, nuevaCantidad, setProducto) => {
     setCant((prevCantidad) => (prevCantidad > 0 ? prevCantidad - 1 : 0));
   };
   
-  export const eliminarProducto = (setProducto, setSelectedDiscount, setCant, setCambio,setSelectedId) => {  
+  export const eliminarProducto = (setProducto, setSelectedDiscount, setCant, setCambio,setSelectedId,setTipoVentaSeleccionado,setSelectedTipoVentaId) => {  
     setProducto([]); 
+    setTipoVentaSeleccionado([]);
     setSelectedDiscount([]);     
     setCant(0);  
     setCambio(0);
+    setSelectedTipoVentaId(null);
     setSelectedId(null); // Limpiar selección
   };
 

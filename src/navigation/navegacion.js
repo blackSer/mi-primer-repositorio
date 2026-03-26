@@ -1,4 +1,4 @@
-import React, { useState, useContext, use } from "react";
+import React, { useState, useContext, useEffect ,useRef} from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,39 +12,81 @@ const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 function MainTabs() {
-  const { data, folio, datos } = useContext(DataContext);
-  const [filteredData, setFilteredData] = useState(datos);
+  const { data, tallas, datos } = useContext(DataContext);
+  
+  // ✅ 1. Creamos estados INDEPENDIENTES para cada pantalla
+  const [filteredDataInicio, setFilteredDataInicio] = useState(datos);
+  const [filteredDataDesgloses, setFilteredDataDesgloses] = useState(tallas);
+  
+  // ✅ 2. Creamos triggers independientes por si quieres limpiar una pantalla sin afectar la otra
+  const [clearSearchTriggerInicio, setClearSearchTriggerInicio] = useState(0);
+  const [clearSearchTriggerDesgloses, setClearSearchTriggerDesgloses] = useState(0);
+
+  const [productoEscaneado, setProductoEscaneado] = useState(null);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
+  
+  useEffect(() => {
+    // Actualizamos ambos cuando los datos originales cambian
+    setFilteredDataInicio(datos);
+    setFilteredDataDesgloses(tallas);
+  }, [datos],[tallas]);
   
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerTitle: () => (
-          <SearchBar
-            onFilter={setFilteredData}
-            onSelect={setSelectedCharacter}
-            limpiar={setSelectedCharacter}
-          />
-        ),
+        headerTitle: () => {
+          // ✅ 3. Aplicamos TU lógica: evaluamos qué pantalla está activa
+          const isInicio = route.name === "Inicio";
+
+          return (
+            <SearchBar
+              // 🔥 IMPORTANTE: La 'key' obliga a React a crear un SearchBar distinto por pestaña. 
+              // Así el texto que escribas en uno, no aparecerá escrito en el otro.
+              key={route.name} 
+              
+              // Mandamos la info al estado que corresponda
+              onFilter={isInicio ? setFilteredDataInicio : setFilteredDataDesgloses}
+              limpiarTrigger={isInicio ? clearSearchTriggerInicio : clearSearchTriggerDesgloses}
+              
+              // Si la cámara solo se usa en Inicio, lo condicionamos también
+              onAutoAdd={isInicio ? (itemData) => setProductoEscaneado(itemData) : undefined}
+              //onSelect={isInicio ? setSelectedCharacter : undefined} // O crea un estado separado si Desgloses también lo usa
+            />
+          );
+        },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           if (route.name === "Inicio") {
             iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "Catálogos") {
+          } else if (route.name === "Desgloses") {
             iconName = focused ? "list" : "list-outline";
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        headerStyle: { height: 70 },
+        headerStyle: { height: 80 },
         tabBarActiveTintColor: "blue",
         tabBarInactiveTintColor: "gray",
       })}
     >     
       <Tab.Screen name="Inicio">
-        {() => <Inicio filteredData={filteredData} selectedCharacter={selectedCharacter} folio={folio} />}
+        {() => (
+          <Inicio 
+            // ✅ 4. Le pasamos solo los datos de Inicio
+            filteredData={filteredDataInicio} 
+            selectedCharacter={selectedCharacter} 
+            productoEscaneado={productoEscaneado} 
+            limpiarBusqueda={() => setClearSearchTriggerInicio(prev => prev + 1)} 
+          />
+        )}
       </Tab.Screen>
-      <Tab.Screen name="Catálogos">
-        {() => <Catalogos filteredData={filteredData} selectedCharacter={selectedCharacter} />}
+      <Tab.Screen name="Desgloses">
+        {() => (
+          <Catalogos 
+            // ✅ 5. Le pasamos solo los datos de Desgloses
+            filteredData={filteredDataDesgloses} 
+            limpiarBusqueda={() => setClearSearchTriggerDesgloses(prev => prev + 1)}
+          />
+        )}
       </Tab.Screen>
     </Tab.Navigator>
   );

@@ -1,4 +1,3 @@
-import React from "react";
 import RadioGroup from "react-native-radio-buttons-group";
 
 const CustomRadioButton = ({ options, selectedId, onSelect }) => {

@@ -8,46 +8,73 @@ export function DataProvider({ children }) {
   const [datos, setDatos] = useState([]); // Datos de la API
   const [loading, setLoading] = useState(true); // Estado de carga
   const [user, setUser] = useState(null);
-  const [folio, setFolio] = useState('')
+  const [tallas, setTallas] = useState([]);
+  const [corte, setCorte] = useState("");
+  
+  //*******API TALLAS**********/
+  const cargarTallas = async (corte) => {      
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `http://www.almacenesdc.com/Tienda.asmx/Estatus_corte?c=${corte}`
+        );     
+        const data = await response.json();      
 
-  // Refs para evitar fetches duplicados
-  const dataFetchedRef = useRef(false);
-  const datosFetchedRef = useRef(false);
-  const userFetchedRef = useRef(false);
-  //useEffect(() => {
-  //  const fetchData = async () => {
-  //    try {
-  //      const response = await fetch("http://www.almacenesdc.com.mx/puntodeventa.asmx/HelloWorld");
-  //      const textResponse = await response.text();
-  //      const jsonString = textResponse.match(/>(.*?)</)[1]; // Extraer JSON de XML
-  //      const jsonData = JSON.parse(jsonString);
-  //      
-  //      // Suponiendo que jsonData es un objeto con una lista, si no, ajusta esto
-  //      setData(Array.isArray(jsonData) ? jsonData : [jsonData]);
-  //    } catch (error) {
-  //      console.error("Error al obtener datos:", error);
-  //    } finally {
-  //      setLoading(false);
-  //    }
-  //    
-  //  };
-  //
-  //  fetchData();
-  //}, []);
-  useEffect(() => {   
-    const fol='MOV0001'
-    setFolio(fol); 
-    fetch("https://rickandmortyapi.com/api/character")
-      .then((response) => response.json())
-      .then((data) => {
-        setData(data.results); // Guardamos los resultados en el estado
+        if (data && data.length > 0) {
+        const objetoCorte = data[0]; 
+        const tallaProcesadas = normalizarTallas(objetoCorte);
+        setTallas(tallaProcesadas);
+        setCorte(corte);
+      } else {
+        setTallas([]); // Evita errores si la API no devuelve nada
+      }
+      } catch (error) {
+        console.error("Error de tallas: ", error);
+      }finally {
         setLoading(false);
-      })
-      .catch((error) => console.error(error));
-  }, []);
+      }
+  };
+    //Extraemos las tallas de la API y las agrupamos por corte para mostrarlas en el picker
+  const normalizarTallas = (item) => {
+    const resultado = [];
+      
+    //const totalCoratdasKey = i === 0 ? "TOTAL_CORTADAS_REAL" : {};
+    for (let i = 0; i <= 9; i++) {
+      
+      const tallaKey = i === 0 ? "TALLAS" : `TALLAS${i}`;
+      const piezasKey = i === 0 ? "TALLAS_PZAS_CORTADAS_REAL" : `TALLAS_PZAS_CORTADAS_REAL${i}`;
+      //console.log(`Procesando ${tallaKey} y ${piezasKey}: `, item[tallaKey], item[piezasKey]);
+      if (item[tallaKey] !== null && item[tallaKey] !== undefined) {
+        resultado.push({
+          talla: item[tallaKey],
+          piezas: item[piezasKey] !== null ? item[piezasKey] : 0,
+        });
+      }
+    }
 
-  //*******AGRUPAMOS LOS REGISTOS DUPLICADOS**********
-    const agruparPorCorteYClase = (dataApi) => {
+    return resultado;
+  };
+  //*************API PRODUCTOS****************//
+  const cargarProductos = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        "http://www.almacenesdc.com/Tienda.asmx/Productos"
+      );
+
+      const data = await response.json();
+      const productosProcesados = agruparPorCorteYClase(data);
+
+      setDatos(productosProcesados);
+    } catch (error) {
+      console.error("Error de productos", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+//*******AGRUPAMOS LOS REGISTOS DUPLICADOS**********
+  const agruparPorCorteYClase = (dataApi) => {
     const agrupados = {};
 
     dataApi.forEach((item) => {
@@ -99,49 +126,10 @@ export function DataProvider({ children }) {
   // Convertimos el objeto de vuelta a un Array limpio para el FlatList
   return Object.values(agrupados);
   };
-  const agruparPorCorte = (dataApi) => {
-    const agrupados = {};
 
-    dataApi.forEach((item) => {
-      // 1. Limpiamos la talla (quitamos el \r y espacios)
-      const tallaLimpia = item.TALLA ? item.TALLA.trim() : "UNICA";
-      const corte = item.CORTE;
-
-      // 2. Si el corte no existe en nuestro objeto temporal, lo creamos
-      if (!agrupados[corte]) {
-        agrupados[corte] = {
-          ...item, // Copiamos datos generales (Imagen, Marca, etc)
-          // Creamos un array especial para las variantes
-          VARIANTES: [] 
-        };
-      }
-
-      // 3. Agregamos la talla y sus existencias a la lista de variantes de ese corte
-      agrupados[corte].VARIANTES.push({
-        talla: tallaLimpia,
-        existencias: item.EXISTENCIAS
-      });
-    });
-
-    // 4. Convertimos el objeto de vuelta a un array
-    return Object.values(agrupados);
-  };
-  //*************API PRODUCTOS****************//
   useEffect(() => {
-    if (datosFetchedRef.current) return;
-    datosFetchedRef.current = true;
-    //fetch("http://www.almacenesdc.com:8081/productos.php?layout=almacenes_prendas")
-    fetch("http://www.almacenesdc.com/Tienda.asmx/Productos")
-      .then((response) => response.json())
-      .then((data) => {
-        // AQUI ESTA LA MAGIA: Agrupamos los datos antes de guardarlos
-        // Usamos la nueva función
-        const productosProcesados = agruparPorCorteYClase(data); 
-        setDatos(productosProcesados);
-        setLoading(false);
-        //console.log(data);
-      })
-      .catch((error) => console.error("Error de productos", error));      
+    cargarProductos();
+    //cargarTallas()
   }, []);
 
   useEffect(() => {
@@ -152,12 +140,6 @@ export function DataProvider({ children }) {
     };
     loadUser();
   }, []);
-
-  const nuevoFolio = async () => {
-    const fol='MOV0002'
-    setFolio(fol);
-    //return { success: true, user: folio };
-  }
   
   const login = async (username, password) => {
     const userData = { username, password };
@@ -178,7 +160,7 @@ export function DataProvider({ children }) {
   };
 
   return (
-    <DataContext.Provider value={{ data, datos, loading, user, login, logout, folio, nuevoFolio}}>
+    <DataContext.Provider value={{ data, datos,cargarProductos,cargarTallas,tallas,corte, loading, user, login, logout,}}>
       {children}
     </DataContext.Provider>
   );

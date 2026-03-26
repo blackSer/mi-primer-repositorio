@@ -43,6 +43,11 @@ export default StyleSheet.create({
     marginBottom: 0,
     width: "60%",
   },
+  column5: {
+    flexDirection: 'column',
+    marginBottom: 0,
+    width: "33%",
+  },
   box: {
     borderWidth:1,
     borderColor:"white",

@@ -5,7 +5,7 @@ import { View, Text, StyleSheet,Image,TouchableOpacity,PixelRatio,Alert } from '
 const fontScale = PixelRatio.getFontScale();
 const getFontSize = size => size / fontScale;
 
-const Card = ({ title, variantes, selectedImage, agregar, cantidadEnCarrito, selectedTalla, onSelectTalla }) => {
+const Card = ({ title, variantes, selectedImage, agregar, cantidadEnCarrito, selectedTalla, onSelectTalla, estilo }) => {
   
   const imageSource = selectedImage ? { uri: `data:image/jpeg;base64,${selectedImage}` } : null;
   // 1. Encontrar datos de la talla seleccionada
@@ -24,11 +24,11 @@ const Card = ({ title, variantes, selectedImage, agregar, cantidadEnCarrito, sel
 
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
-        
+        <Text style={[{ fontSize: 11,textAlign: "center",}]}>{estilo}</Text>
         {/* INFO DE EXISTENCIAS */}
         <Text style={styles.subtitle}>
           Existencias: <Text style={{fontWeight: 'bold', color: existenciasActuales === 0 && selectedTalla ? 'red' : 'black'}}>
-            {selectedTalla ? existenciasActuales : "Selecciona talla"}
+            {selectedTalla ? existenciasActuales - cantidadEnCarrito : "Selecciona talla"}
           </Text>
         </Text>
 
@@ -41,7 +41,7 @@ const Card = ({ title, variantes, selectedImage, agregar, cantidadEnCarrito, sel
                 styles.tallaButton, 
                 { 
                   // Si está seleccionada: Verde oscuro. Si no: Gris.
-                  backgroundColor: selectedTalla === v.talla ? "#00796b" : "#eeeeee",
+                  backgroundColor: selectedTalla === v.talla  ? "#00796b" : "#eeeeee",
                   // Si no hay stock de esa talla específica, le bajamos la opacidad visualmente
                   opacity: v.existencias === 0 ? 0.5 : 1
                 }
@@ -70,7 +70,7 @@ const Card = ({ title, variantes, selectedImage, agregar, cantidadEnCarrito, sel
             styles.addButton, 
             { 
               // Cambia de color si ya hay items en carrito, o se pone gris si está deshabilitado
-              backgroundColor: !botonHabilitado ? "#ccc" : (cantidadEnCarrito > 0 ? "#00796b" : "#009688") 
+              backgroundColor: !botonHabilitado  ? "#ccc" : (cantidadEnCarrito > 0 ? "#00796b" : "#009688") 
             }
           ]}
           onPress={() => {
@@ -101,7 +101,7 @@ const Card = ({ title, variantes, selectedImage, agregar, cantidadEnCarrito, sel
 };
 const styles = StyleSheet.create({
   card: {
-  borderRadius: 12,
+  borderRadius: 15,
   overflow: "hidden",
   shadowColor: "#000",
   shadowOffset: { width: 0, height: 2 },
